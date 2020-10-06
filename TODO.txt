@@ -1,0 +1,5 @@
+TODO :
+- Vérifier que la solution proposée pour l'exemple 2 fonctionne.
+- Faire un solveur d'EDP.
+- Modéliser le modèle 2.
+- Regarder les papiers.
