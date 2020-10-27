@@ -1,5 +1,14 @@
 TODO :
-- Vérifier que la solution proposée pour l'exemple 2 fonctionne.
-- Faire un solveur d'EDP.
-- Modéliser le modèle 2.
-- Regarder les papiers.
+- Regarder évolution
+    - Variance
+    - Moyenne
+    - Taille totale (rho)
+- Régler pb variance
+- Régler solveurs implicites
+- Trouver nouvelles méthodes pour display résultats:
+    - Film/animation/GIF
+    - Plot 3D
+    - Plot Interactif
+- Mettre du bruit sur inconnues:
+    - Theta
+    - s
