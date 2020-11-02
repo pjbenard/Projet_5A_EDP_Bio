@@ -1,14 +1,14 @@
 TODO :
-- Regarder évolution
+- Regarder évolution ok
     - Variance
     - Moyenne
     - Taille totale (rho)
-- Régler pb variance
-- Régler solveurs implicites
-- Trouver nouvelles méthodes pour display résultats:
+- Régler pb variance ok
+- Régler solveurs implicites ok
+- Trouver nouvelles méthodes pour display résultats: 
     - Film/animation/GIF
     - Plot 3D
     - Plot Interactif
 - Mettre du bruit sur inconnues:
-    - Theta
+    - Theta ok
     - s
