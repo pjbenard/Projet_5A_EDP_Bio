@@ -11,4 +11,13 @@ TODO :
     - Plot Interactif
 - Mettre du bruit sur inconnues:
     - Theta ok
+        - gaussien
+        - uniforme
+        - nb valeurs discrètes
     - s
+        - s != 0
+        -> gaussienne tronquée
+        -> ou val aléatoire entre deux intervalles
+        
+- Donnée intiale :
+    - Tester autre que gaussienne
