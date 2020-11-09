@@ -5,11 +5,11 @@ TODO :
     - Taille totale (rho)
 - Régler pb variance ok
 - Régler solveurs implicites ok
-- Trouver nouvelles méthodes pour display résultats: 
+- Trouver nouvelles méthodes pour display résultats
     - Film/animation/GIF
-    - Plot 3D
-    - Plot Interactif
-- Mettre du bruit sur inconnues:
+    - Plot 3D --> plotly & holoviews
+    - Plot Interactif ok
+- Mettre du bruit sur inconnues
     - Theta ok
         - gaussien
         - uniforme
@@ -19,5 +19,9 @@ TODO :
         -> gaussienne tronquée
         -> ou val aléatoire entre deux intervalles
         
-- Donnée intiale :
-    - Tester autre que gaussienne
+- Ajouter du déplacement avec Theta
+    - Constant ok
+        
+- Donnée intiale ok
+    - Gaussienne
+    - Uniforme sur intervalle 
