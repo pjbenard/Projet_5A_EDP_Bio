@@ -9,12 +9,13 @@ TODO :
     - Film/animation/GIF
     - Plot 3D --> plotly & holoviews
     - Plot Interactif ok
+    - Display le theta optimal ok
 - Mettre du bruit sur inconnues
     - Theta ok
         - gaussien
         - uniforme
         - nb valeurs discrètes
-    - s
+    - s ok
         - s != 0
         -> gaussienne tronquée
         -> ou val aléatoire entre deux intervalles
