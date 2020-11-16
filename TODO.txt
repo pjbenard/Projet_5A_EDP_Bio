@@ -1,28 +1,30 @@
 TODO :
-- Regarder évolution ok
-    - Variance
-    - Moyenne
-    - Taille totale (rho)
-- Régler pb variance ok
-- Régler solveurs implicites ok
 - Trouver nouvelles méthodes pour display résultats
     - Film/animation/GIF
     - Plot 3D --> plotly & holoviews
-    - Plot Interactif ok
-    - Display le theta optimal ok
-- Mettre du bruit sur inconnues
-    - Theta ok
-        - gaussien
-        - uniforme
-        - nb valeurs discrètes
-    - s ok
-        - s != 0
-        -> gaussienne tronquée
-        -> ou val aléatoire entre deux intervalles
-        
-- Ajouter du déplacement avec Theta
-    - Constant ok
-        
-- Donnée intiale ok
-    - Gaussienne
-    - Uniforme sur intervalle 
+    
+- Imposer un bruit cyclique (sinusoïdale)
+    -> theta(t) = theta + A sin(bt)
+    - A /sim theta
+
+1) Choisir t_1 >> t_0 
+(s/(t_1-t_0)) * \int_t_0^t_1 (\mu(s)-\theta(s))^2 ds
+
+un test moins quantitatif : déjà voir si ces quantités sont croissantes / décroissantes par rapport à sigma
+
+2) pour t \geq t_0 :
+mu(t) \approx \mu_0 + bruit 
+
+choisir t_1 >> t_0 :
+z_barre(t) - theta(t) --> prendre la moyenne -> constante + bruit
+(1/(t_1-t_0)) * \int_t_0^t_1 (\mu(s)-\theta(s))^2 ds
+
+Cette quantité s'approche de "evolutionary load" 
+Comparer avec le tableau de Lande et Shannon (pour fluctuations aléatoire + sinusoïdale)
+    
+d/dt \rho(t) = \rho(t) F(t)
+
+-> \rho(t) = \rho(0) e^{\int_0^t F(s) ds}.
+\rho(0)>0 --> \rho(t)>0 
+
+3) comparer numériquement le système sur les moments avec les résultats de l'EDP
