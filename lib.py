@@ -241,7 +241,7 @@ def get_noise(nbT, noise_type='normal', noise_std=.5):
     elif noise_type is 'discrete':
         noise_values = np.linspace(start=-noise_std, stop=noise_std, num=5)
         NOISE = np.random.choice(noise_values, size=nbT + 1)
-    accumulate = True
+    accumulate = False
     if accumulate:
         NOISE = np.cumsum(NOISE)
     
