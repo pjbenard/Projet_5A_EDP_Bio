@@ -30,11 +30,11 @@ class model():
         self.Z = np.linspace(a ,b, N)
         self.sigma = sigma
         
-        self.A = self.__get_A()
-        self.nbT = (int(T / dt))
-        self.mu = 5
+        self.A = self.__get_A__()
+        self.nbT = int(T / dt)
+        self.mu = mu
         self.kappa = kappa
-        self.r_max = 1
+        self.r_max = r_max
         self.source_types = {'normal': self.source_normal, 'uniform': self.source_uniform}
         self.solvers = {"solve_implicit": self.solve_implicit, "solve_explicit": self.solve_explicit, "solve_splitting": self.solve_splitting}
 
@@ -52,7 +52,7 @@ class model():
             a, b, N = discret_args["a"], discret_args["b"], discret_args["N"]
             dz = (b - a) / N
             nbT = int(T / dt)
-            A = self.__get_A(dz, N)
+            A = self.__get_A__(dz, N)
             Z = np.linspace(a, b, N)
         self.s_args = s_args
         self.theta_args = theta_args
@@ -95,11 +95,12 @@ class model():
         self.THETA = THETA
         self.S = S
         self.Us = np.array(Us)
-        self.RHO = self.get_rho(self.Us)
+        self.RHO = self.__get_rho__(self.Us)
         MEAN = mean(self.Z, self.Us)
+        self.MU = MEAN 
         VAR = var(self.Z, self.Us)
         self.VAR = VAR
-        self.MU = MEAN 
+        
     def plot_2D(self, dynamic=True, log_plot=False, nb_images=50):
         Z = self.Z
         Us = self.Us
@@ -156,7 +157,6 @@ class model():
             [VAR, RHO], ['Phenotypic state variance', 'Population']
         )]
 
-
         return hv.output(hv.Layout(curves).opts(width=900, **options))
     
     def plot_moments(self):
@@ -164,13 +164,15 @@ class model():
         MEAN = mean(self.Z, self.Us)
         VAR = var(self.Z, self.Us)
         THETA = self.THETA
+        
         dVAR = dvar(VAR, self.S, self.sigma)
         dMU = dmu(MEAN,VAR,THETA,self.S)
-
         dRHO = drho(RHO, MEAN, VAR, self.S, THETA, self.sigma, self.kappa, self.r_max)
+        
         self.dVAR = dVAR
         self.dMU = dMU
         self.dRHO = dRHO
+        
         options = {'shared_axes': False, 'toolbar': None}
 
         curves = []
@@ -185,7 +187,7 @@ class model():
 
 
         return hv.output(hv.Layout(curves).opts(width=900, **options))
-    def __get_A(self):
+    def __get_A__(self):
         N = self.N - 2
         tmp = np.ones((N - 1))
         diag = -2 * np.ones(N)
@@ -194,14 +196,14 @@ class model():
         return sps.diags((tmp, diag, tmp),(-1, 0, 1)) * self.sigma**2 / (self.dz**2)
     
     
-    def get_r(self,S,THETA,Z):
+    def __get_r__(self,S,THETA,Z):
         return self.r_max - S * (Z - THETA)**2
 
-    def get_rho(self, U):
+    def __get_rho__(self, U):
         return self.dz * ((U[..., 0] + U[..., -1]) / 2 + np.sum(U[..., 1:-1], axis=-1))
     
     def solve_explicit(self,A, U, Z, rho, dz, dt, theta, s):
-        r = self.get_r(s,theta,Z)
+        r = self.__get_r__(s,theta,Z)
         tmp1 = sps.eye(A.shape[0])
         tmp2 = dt * A
         tmp3 = (dt * (r - self.kappa * rho))
@@ -209,13 +211,21 @@ class model():
         return U_next
 
     def solve_implicit(self,A, U, Z, rho, dz, dt, theta, s):
-        r = self.get_r(s,theta,Z)
+        r = self.__get_r__(s,theta,Z)
         FU = self.F(U, r, rho)
 
         lhs = (np.eye(A.shape[0]) - dt * A)
         rhs = U + dt * FU
         return sspl.cg(lhs, rhs)[0]
 
+    def solve_splitting(self,A, U, Z, rho, dz, dt, theta, s):
+        tempU1 = sspl.cg(np.eye(A.shape[0]) - dt / 2 * A, U)[0]
+
+        r = self.__get_r__(s,theta,Z)
+
+        tempU2 = tempU1 + dt * self.F(tempU1, r, rho)
+        return sspl.cg(np.eye(A.shape[0]) - dt / 2 * A, tempU2)[0]
+    
     def F(self,U, r, rho):
         return U * (r - self.kappa * rho)
     
@@ -227,13 +237,6 @@ class model():
         U = np.where(np.abs(Z - mid) < half_dist, 0, height / 2)
 
         return U
-    def solve_splitting(self,A, U, Z, rho, dz, dt, theta, s):
-        tempU1 = sspl.cg(np.eye(A.shape[0]) - dt / 2 * A, U)[0]
-
-        r = self.get_r(s,theta,Z)
-
-        tempU2 = tempU1 + dt * self.F(tempU1, r, rho)
-        return sspl.cg(np.eye(A.shape[0]) - dt / 2 * A, tempU2)[0]
 
 def mean(Z, U):
     return np.sum(U * Z, axis=-1) / np.sum(U, axis=-1)
@@ -243,10 +246,10 @@ def var(Z, U):
     return np.sum(U * Z**2, axis=-1) / np.sum(U, axis=-1) - mu**2 
 
 def dvar(VAR, S, sigma):
-    return VAR/(2*S) - (VAR**3)/(2*sigma )
+    return VAR / (2 * S) - (VAR**3) / (2 * sigma)
 
 def dmu(MU,VAR,THETA,S):
-    return 2*S*VAR*(THETA-MU)
+    return 2 * S * VAR * (THETA - MU)
 
 def drho(RHO, MU, VAR, S, THETA, sigma, kappa, r):
     f = 1./VAR
