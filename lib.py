@@ -38,7 +38,7 @@ class model():
         self.source_types = {'normal': self.source_normal, 'uniform': self.source_uniform}
         self.solvers = {"solve_implicit": self.solve_implicit, "solve_explicit": self.solve_explicit, "solve_splitting": self.solve_splitting}
 
-    def solve(self, solver, theta_args, s_args, source_args, discret_args = None):
+    def solve(self, solver, theta_args, s_args, source_args, discret_args = None, show_tqdm = True):
         if discret_args is None:
             dt = self.dt
             nbT = self.nbT
@@ -73,15 +73,24 @@ class model():
 
         THETA = get_theta(nbT, **theta_args)
         S = get_s(nbT, **s_args)
+        if show_tqdm:
+            for i in tqdm(range(0, nbT + 1)):
+                rho = self.get_rho(U)
 
-        for i in tqdm(range(0, nbT + 1)):
-            rho = self.get_rho(U)
+                Us[i] = np.copy(U)
 
-            Us[i] = np.copy(U)
+                U[1:-1] = solver(A, U[1:-1],  Z[1:-1], rho, dz, dt, THETA[i], S[i])
+                U[0] = U[1]
+                U[-1] = U[-2]
+        else:
+            for i in range(0, nbT + 1):
+                rho = self.get_rho(U)
 
-            U[1:-1] = solver(A, U[1:-1],  Z[1:-1], rho, dz, dt, THETA[i], S[i])
-            U[0] = U[1]
-            U[-1] = U[-2]
+                Us[i] = np.copy(U)
+
+                U[1:-1] = solver(A, U[1:-1],  Z[1:-1], rho, dz, dt, THETA[i], S[i])
+                U[0] = U[1]
+                U[-1] = U[-2]
             
         self.THETA = THETA
         self.S = S
@@ -105,9 +114,9 @@ class model():
             range_plot = np.linspace(start=0, stop=Us.shape[0] - 1, num=nb_images, endpoint=True, dtype=int)
 
         if THETA is not None and dynamic:
-            curve_dict = {round(dt * i, ndigits=2): hv.Curve((Z, Us[i])) * hv.VLine(THETA[i]).opts(color='orange') for i in range_plot}
+            curve_dict = {round(dt * i, ndigits=2): hv.Curve((Z, Us[i])) * hv.VLine(THETA[i]).opts(title = "Population density",xlabel = "Phenotypic state",color='orange') for i in range_plot}
         else:
-            curve_dict = {round(dt * i, ndigits=2): hv.Curve((Z, Us[i])) for i in range_plot}
+            curve_dict = {round(dt * i, ndigits=2): hv.Curve((Z, Us[i])).opts(title =f"Population density", xlabel = "Phenotypic state") for i in range_plot}
 
         if dynamic:
     #         curve_dict = {i: hv.Curve((Z, Us[i])).opts(title=f'Approximated solution at t = {dt * i:.1f}') for i in range(0, Us.shape[0], time_step)}
@@ -117,6 +126,15 @@ class model():
             plot = hv.NdOverlay(curve_dict, kdims='Time').opts(legend_position='right')
 
         return hv.output(plot.opts(width=600, toolbar=None))
+    
+    def plot_3D(self):
+        time = np.linspace(0, self.T,self.nbT +1)
+        X = self.Z
+
+        return hv.output(hv.Image((X,time,self.Us)).opts(title = "Population density", xlabel = "Phenotypic state", 
+                                            ylabel = "Time",colorbar = True,toolbar = None).opts(cmap = 'viridis', width = 350))
+        
+        
     def plot_params(self):
         RHO = self.RHO
         MEAN = mean(self.Z, self.Us)
@@ -125,17 +143,17 @@ class model():
         self.VAR = VAR
         self.RHO = RHO
         self.MU = MEAN        
-
+        time = np.linspace(0, self.T,self.nbT +1)
         options = {'shared_axes': False, 'toolbar': None}
 
         curves = []
 
-        curves += [hv.NdOverlay({theta_name: hv.Curve(VALUE, 'Iteration', 'Theta').opts(alpha=alpha) for VALUE, theta_name, alpha in zip(
-            [MEAN, THETA], ['Current', 'Optimal'], [1., .5]
-        )}, kdims='Thetas').opts(title='Evolution of theta (mean)')]
+        curves += [hv.NdOverlay({theta_name: hv.Curve((time,VALUE), 'Iteration', 'Theta').opts(alpha=alpha) for VALUE, theta_name, alpha in zip(
+            [MEAN, THETA], ['Numerical', 'Optimal'], [1., .5]
+        )}, kdims='Thetas').opts(title='Mean phenotypic state')]
 
-        curves += [hv.Curve(VALUE, 'Iteration', val_name.capitalize()).opts(title=f'Evolution of {val_name}') for VALUE, val_name in zip(
-            [VAR, RHO], ['variance', 'population']
+        curves += [hv.Curve((time,VALUE), 'Time', val_name.capitalize()).opts(title=f'{val_name}') for VALUE, val_name in zip(
+            [VAR, RHO], ['Phenotypic state variance', 'Population']
         )]
 
 
@@ -186,7 +204,7 @@ class model():
         r = self.get_r(s,theta,Z)
         tmp1 = sps.eye(A.shape[0])
         tmp2 = dt * A
-        tmp3 = (dt * (r - kappa * rho))
+        tmp3 = (dt * (r - self.kappa * rho))
         U_next = (tmp1 + tmp2).dot(U) + (U * tmp3)
         return U_next
 
@@ -233,7 +251,7 @@ def dmu(MU,VAR,THETA,S):
 def drho(RHO, MU, VAR, S, THETA, sigma, kappa, r):
     f = 1./VAR
     return RHO*((sigma/f)*(f-1) + S*MU*(THETA-MU)-S*THETA**2 + r - kappa*RHO)
-def get_noise(nbT, noise_type='normal', noise_std=.5):
+def get_noise(nbT, noise_type='normal', noise_std=.5, accumulate = False):
     if  noise_type is 'normal':
         NOISE = np.random.normal(loc=0., scale=noise_std, size=nbT + 1)
     elif noise_type is 'uniform':
@@ -241,7 +259,6 @@ def get_noise(nbT, noise_type='normal', noise_std=.5):
     elif noise_type is 'discrete':
         noise_values = np.linspace(start=-noise_std, stop=noise_std, num=5)
         NOISE = np.random.choice(noise_values, size=nbT + 1)
-    accumulate = False
     if accumulate:
         NOISE = np.cumsum(NOISE)
     
@@ -249,7 +266,7 @@ def get_noise(nbT, noise_type='normal', noise_std=.5):
 
 def get_theta(nbT, **theta_args):
     THETA = np.ones(nbT + 1) * theta_args['theta_value']
-    
+    accum = theta_args['accumulative']
     if theta_args['theta_moving']:
         MOVING = np.arange(nbT + 1) * theta_args['theta_speed']
         THETA += MOVING
@@ -258,7 +275,7 @@ def get_theta(nbT, **theta_args):
         noise_type = theta_args.get('theta_noise_type', 'normal')
         noise_std = theta_args.get('theta_noise_std', 0.5)
         
-        NOISE = get_noise(nbT, noise_type, noise_std)
+        NOISE = get_noise(nbT, noise_type, noise_std, accum)
         THETA += NOISE
         
     return THETA
