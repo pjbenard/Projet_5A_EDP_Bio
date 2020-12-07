@@ -75,7 +75,7 @@ class model():
         S = get_s(nbT, **s_args)
         if show_tqdm:
             for i in tqdm(range(0, nbT + 1)):
-                rho = self.get_rho(U)
+                rho = self.__get_rho__(U)
 
                 Us[i] = np.copy(U)
 
@@ -149,7 +149,7 @@ class model():
 
         curves = []
 
-        curves += [hv.NdOverlay({theta_name: hv.Curve((time,VALUE), 'Iteration', 'Theta').opts(alpha=alpha) for VALUE, theta_name, alpha in zip(
+        curves += [hv.NdOverlay({theta_name: hv.Curve((time,VALUE), 'Time', 'Theta').opts(alpha=alpha) for VALUE, theta_name, alpha in zip(
             [MEAN, THETA], ['Numerical', 'Optimal'], [1., .5]
         )}, kdims='Thetas').opts(title='Mean phenotypic state')]
 
