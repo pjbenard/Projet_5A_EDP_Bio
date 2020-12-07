@@ -145,7 +145,11 @@ class model():
 
         curves = []
 
+<<<<<<< HEAD
         curves += [hv.NdOverlay({theta_name: hv.Curve((time, VALUE), 'Iteration', 'Theta').opts(alpha=alpha) for VALUE, theta_name, alpha in zip(
+=======
+        curves += [hv.NdOverlay({theta_name: hv.Curve((time,VALUE), 'Time', 'Theta').opts(alpha=alpha) for VALUE, theta_name, alpha in zip(
+>>>>>>> afc591c275458bca849a1ebf256659e0104b0e86
             [MEAN, THETA], ['Numerical', 'Optimal'], [1., .5]
         )}, kdims='Thetas').opts(title='Mean phenotypic state')]
 
