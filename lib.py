@@ -35,10 +35,10 @@ class model():
         self.mu = mu
         self.kappa = kappa
         self.r_max = r_max
-        self.source_types = {'normal': self.source_normal, 'uniform': self.source_uniform}
+        self.source_types = {'normal': source_normal, 'uniform': source_uniform}
         self.solvers = {"solve_implicit": self.solve_implicit, "solve_explicit": self.solve_explicit, "solve_splitting": self.solve_splitting}
 
-    def solve(self, solver, theta_args, s_args, source_args, discret_args = None, show_tqdm = True):
+    def solve(self, solver, theta_args, s_args, source_args, discret_args=None, disable_tqdm=False):
         if discret_args is None:
             dt = self.dt
             nbT = self.nbT
@@ -130,10 +130,15 @@ class model():
     
     def plot_3D(self):
         time = np.linspace(0, self.T,self.nbT +1)
-        X = self.Z
+        Z = self.Z
 
-        return hv.output(hv.Image((X,time,self.Us)).opts(title = "Population density", xlabel = "Phenotypic state", 
-                                            ylabel = "Time",colorbar = True,toolbar = None).opts(cmap = 'viridis', width = 350))
+        options = {'title': 'Population density', 
+                   'xlabel': 'Phenotypic state', 'ylabel': 'Time', 
+                   'colorbar': True, 'toolbar': None, 'width': 350}
+        
+        plot = hv.Image((Z, time, self.Us))
+        
+        return hv.output(plot.opts(cmap='viridis', **options))
         
         
     def plot_params(self):
@@ -153,7 +158,7 @@ class model():
             [MEAN, THETA], ['Numerical', 'Optimal'], [1., .5]
         )}, kdims='Thetas').opts(title='Mean phenotypic state')]
 
-        curves += [hv.Curve((time,VALUE), 'Time', val_name.capitalize()).opts(title=f'{val_name}') for VALUE, val_name in zip(
+        curves += [hv.Curve((time, VALUE), 'Time', val_name.capitalize()).opts(title=f'{val_name}') for VALUE, val_name in zip(
             [VAR, RHO], ['Phenotypic state variance', 'Population']
         )]
 
@@ -185,8 +190,8 @@ class model():
             [dVAR, dRHO], ['variance', 'population']
         )]
 
-
         return hv.output(hv.Layout(curves).opts(width=900, **options))
+    
     def __get_A__(self):
         N = self.N - 2
         tmp = np.ones((N - 1))
@@ -202,41 +207,40 @@ class model():
     def __get_rho__(self, U):
         return self.dz * ((U[..., 0] + U[..., -1]) / 2 + np.sum(U[..., 1:-1], axis=-1))
     
+    def F(self, U, r, rho):
+        return U * (r - self.kappa * rho)
+    
     def solve_explicit(self,A, U, Z, rho, dz, dt, theta, s):
         r = self.__get_r__(s,theta,Z)
         tmp1 = sps.eye(A.shape[0])
         tmp2 = dt * A
-        tmp3 = (dt * (r - self.kappa * rho))
-        U_next = (tmp1 + tmp2).dot(U) + (U * tmp3)
+        tmp3 = dt * self.F(U, r, rho)
+        U_next = (tmp1 + tmp2).dot(U) + tmp3
         return U_next
 
     def solve_implicit(self,A, U, Z, rho, dz, dt, theta, s):
         r = self.__get_r__(s,theta,Z)
-        FU = self.F(U, r, rho)
 
         lhs = (np.eye(A.shape[0]) - dt * A)
-        rhs = U + dt * FU
+        rhs = U + dt * self.F(U, r, rho)
         return sspl.cg(lhs, rhs)[0]
 
     def solve_splitting(self,A, U, Z, rho, dz, dt, theta, s):
-        tempU1 = sspl.cg(np.eye(A.shape[0]) - dt / 2 * A, U)[0]
-
         r = self.__get_r__(s,theta,Z)
 
+        tempU1 = sspl.cg(np.eye(A.shape[0]) - dt / 2 * A, U)[0]
         tempU2 = tempU1 + dt * self.F(tempU1, r, rho)
         return sspl.cg(np.eye(A.shape[0]) - dt / 2 * A, tempU2)[0]
     
-    def F(self,U, r, rho):
-        return U * (r - self.kappa * rho)
     
-    def source_normal(self,Z, mu=5, sigma=0.5):    
-        return (.5 / (2 * pi * sigma**2)**.5) * np.exp(-0.5 * ((Z - mu)**2) / sigma**2)
+def source_normal(Z, mu=5, sigma=0.5):    
+    return (.5 / (2 * pi * sigma**2)**.5) * np.exp(-0.5 * (Z - mu)**2 / sigma**2)
 
-    def source_uniform(self,Z, mid=5, half_dist=0.5):
-        height = 1 / (2 * half_dist)
-        U = np.where(np.abs(Z - mid) < half_dist, 0, height / 2)
+def source_uniform(Z, mid=5, half_dist=0.5):
+    height = 1 / (2 * half_dist)
+    U = np.where(np.abs(Z - mid) < half_dist, 0, height / 2)
 
-        return U
+    return U
 
 def mean(Z, U):
     return np.sum(U * Z, axis=-1) / np.sum(U, axis=-1)
@@ -253,7 +257,8 @@ def dmu(MU,VAR,THETA,S):
 
 def drho(RHO, MU, VAR, S, THETA, sigma, kappa, r):
     f = 1./VAR
-    return RHO*((sigma/f)*(f-1) + S*MU*(THETA-MU)-S*THETA**2 + r - kappa*RHO)
+    return RHO * ((sigma / f) * (f - 1) + S * MU * (THETA - MU) - S * THETA**2 + r - kappa * RHO)
+
 def get_noise(nbT, noise_type='normal', noise_std=.5, accumulate = False):
     if  noise_type is 'normal':
         NOISE = np.random.normal(loc=0., scale=noise_std, size=nbT + 1)
@@ -262,6 +267,7 @@ def get_noise(nbT, noise_type='normal', noise_std=.5, accumulate = False):
     elif noise_type is 'discrete':
         noise_values = np.linspace(start=-noise_std, stop=noise_std, num=5)
         NOISE = np.random.choice(noise_values, size=nbT + 1)
+        
     if accumulate:
         NOISE = np.cumsum(NOISE)
     
