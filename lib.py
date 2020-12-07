@@ -84,7 +84,7 @@ class model():
                 U[-1] = U[-2]
         else:
             for i in range(0, nbT + 1):
-                rho = self.get_rho(U)
+                rho = self.__get_rho__(U)
 
                 Us[i] = np.copy(U)
 
