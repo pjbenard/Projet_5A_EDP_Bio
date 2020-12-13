@@ -73,25 +73,15 @@ class model():
 
         THETA = get_theta(nbT, **theta_args)
         S = get_s(nbT, **s_args)
-        if show_tqdm:
-            for i in tqdm(range(0, nbT + 1)):
-                rho = self.__get_rho__(U)
+        for i in tqdm(range(0, nbT + 1), disable=disable_tqdm):
+            rho = self.__get_rho__(U)
 
-                Us[i] = np.copy(U)
+            Us[i] = np.copy(U)
 
-                U[1:-1] = solver(A, U[1:-1],  Z[1:-1], rho, dz, dt, THETA[i], S[i])
-                U[0] = U[1]
-                U[-1] = U[-2]
-        else:
-            for i in range(0, nbT + 1):
-                rho = self.__get_rho__(U)
+            U[1:-1] = solver(A, U[1:-1],  Z[1:-1], rho, dz, dt, THETA[i], S[i])
+            U[0] = U[1]
+            U[-1] = U[-2]
 
-                Us[i] = np.copy(U)
-
-                U[1:-1] = solver(A, U[1:-1],  Z[1:-1], rho, dz, dt, THETA[i], S[i])
-                U[0] = U[1]
-                U[-1] = U[-2]
-            
         self.THETA = THETA
         self.S = S
         self.Us = np.array(Us)
