@@ -73,7 +73,7 @@ class model():
 
         THETA = get_theta(nbT, **theta_args)
         S = get_s(nbT, **s_args)
-        if show_tqdm:
+        if not disable_tqdm:
             for i in tqdm(range(0, nbT + 1)):
                 rho = self.__get_rho__(U)
 
