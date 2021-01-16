@@ -165,7 +165,8 @@ class model():
         options2 = {'shared_axes': False, 'toolbar': None}
         
         return hv.output(hv.Layout([plot.opts(width=500, toolbar=None), plot2.opts(cmap='viridis', **options)]).opts(width = 900, **options2))
-    def plot_params(self):
+    
+    def plot_params(self, pressure_selection=False):
         RHO = self.RHO
         MEAN = mean(self.Z, self.Us)
         VAR = var(self.Z, self.Us)
@@ -177,10 +178,13 @@ class model():
         options = {'shared_axes': False, 'toolbar': None}
 
         curves = []
-
-        curves += [hv.NdOverlay({theta_name: hv.Curve((time,VALUE), 'Time', 'Theta').opts(alpha=alpha) for VALUE, theta_name, alpha in zip(
-            [MEAN, THETA], ['Numerical', 'Optimal'], [1., .5]
-        )}, kdims='Thetas').opts(title='Mean phenotype')]
+    
+        if pressure_selection:
+            S = self.S
+            curves += [hv.Curve((time, S), 'Time', 'Pressure selection').opts(title='Pressure of selection')]
+        else:
+            curves += [hv.NdOverlay({theta_name: hv.Curve((time,VALUE), 'Time', 'Theta').opts(alpha=alpha) for VALUE, theta_name, alpha in zip(
+            [MEAN, THETA], ['Numerical', 'Optimal'], [1., .5])}, kdims='Thetas').opts(title='Mean phenotype')]
 
         curves += [hv.Curve((time, VALUE), 'Time', val_name.capitalize()).opts(title=f'{val_name}') for VALUE, val_name in zip(
             [VAR, RHO], ['Phenotype variance', 'Population size']
